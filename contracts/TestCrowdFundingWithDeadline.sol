@@ -7,14 +7,16 @@ contract TestCrowdFundingWithDeadline is CrowdFundingWithDeadline {
 
     constructor(
         string memory contractName,
-        uint256 targetAmountEth,
+        //uint256 targetAmountEth,
+        uint256 targetAmountWei,
         uint256 durationInMin,
         address beneficiaryAddress
     )
         public
         CrowdFundingWithDeadline(
             contractName,
-            targetAmountEth,
+            //targetAmountEth,
+            targetAmountWei,
             durationInMin,
             beneficiaryAddress
         )
@@ -22,5 +24,9 @@ contract TestCrowdFundingWithDeadline is CrowdFundingWithDeadline {
 
     function currentTime() internal view returns (uint256) {
         return time;
+    }
+
+    function setCurrentTime(uint256 _time) public {
+        time = _time;
     }
 }

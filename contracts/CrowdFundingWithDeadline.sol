@@ -20,23 +20,41 @@ contract CrowdFundingWithDeadline {
 
     constructor(
         string memory contractName,
-        uint256 targetAmountEth,
+        // uint256 targetAmountEth,
+        uint256 targetAmountWei,
         uint256 durationInMin,
         address beneficiaryAddress
     ) public {
         name = contractName;
-        targetAmount = targetAmountEth * 1 ether;
+        targetAmount = targetAmountWei; //targetAmountEth * 1 ether;
         fundingDeadline = currentTime() + durationInMin * 1 minutes;
         beneficiary = beneficiaryAddress;
         state = State.Ongoing;
     }
 
     function contribute() public payable inState(State.Ongoing) {
+        require(beforeDeadline(), "No contributions after deadline!");
         totalCollected += msg.value;
         amounts[msg.sender] += msg.value;
 
         if (totalCollected >= targetAmount) {
             collected = true;
+        }
+    }
+
+    function beforeDeadline() public view returns (bool) {
+        return currentTime() < fundingDeadline;
+    }
+
+    function finishCrowdFunding() public inState(State.Ongoing) {
+        require(
+            !beforeDeadline(),
+            "cannot finish campaign before the deadline!"
+        );
+        if (!collected) {
+            state = State.Failed;
+        } else {
+            state = State.Succeeded;
         }
     }
 

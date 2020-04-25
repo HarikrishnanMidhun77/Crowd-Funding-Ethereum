@@ -9,15 +9,17 @@ contract("CrowdFundingDeadline", function (accounts) {
   let beneficiary = accounts[1];
 
   const ONE_M_WEI = 1000000;
-  const ONGOING_STATE = "0";
-  const FAILED_STATE = "1";
-  const SUCCEEDED_STATE = "2";
-  const PAYED_OUT_STATE = "3";
+  const ONGOING_STATE = 0;
+  const FAILED_STATE = 1;
+  const SUCCEEDED_STATE = 2;
+  const PAYED_OUT_STATE = 3;
+  const ERROR_MSG =
+    "Returned error: VM Exception while processing transaction: revert";
 
   beforeEach(async function () {
     contract = await CrowdFundingWithDeadline.new(
       "funding",
-      1,
+      1000,
       10,
       beneficiary,
       {
@@ -42,7 +44,7 @@ contract("CrowdFundingDeadline", function (accounts) {
     expect(fundingDeadline.toNumber()).to.equal(600);
 
     let state = await contract.state.call();
-    expect(state.toNumber().toString()).to.equal(ONGOING_STATE);
+    expect(state.toNumber()).to.equal(ONGOING_STATE);
   });
 
   it("funds are contributed", async function () {
@@ -52,5 +54,35 @@ contract("CrowdFundingDeadline", function (accounts) {
 
     let totalCollected = await contract.totalCollected.call();
     expect(totalCollected.toNumber()).to.equal(ONE_M_WEI);
+  });
+
+  it("cannot contribute after deadline", async function () {
+    try {
+      await contract.setCurrentTime(50);
+      await contract.sendTransaction({
+        value: ONE_M_WEI,
+        from: contractCreator,
+      });
+      expect.fail();
+    } catch (err) {
+      expect(err.message).to.equal(ERROR_MSG);
+    }
+  });
+
+  it("crowd funding succeeded", async function () {
+    await contract.contribute({ value: ONE_M_WEI, from: contractCreator });
+    await contract.setCurrentTime(601);
+    await contract.finishCrowdFunding();
+
+    let state = await contract.state.call();
+    expect(state.toNumber()).to.equal(SUCCEEDED_STATE);
+  });
+
+  it("crowd funding failed", async function () {
+    await contract.setCurrentTime(601);
+    await contract.finishCrowdFunding();
+
+    let state = await contract.state.call();
+    expect(state.toNumber()).to.equal(FAILED_STATE);
   });
 });
