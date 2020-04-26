@@ -1,9 +1,10 @@
 pragma solidity >=0.4.21 <0.7.0;
+import "./Utils.sol";
 
 
 contract CrowdFundingWithDeadline {
     enum State {Ongoing, Failed, Succeeded, Paidout}
-
+    using Utils for *;
     string public name;
     uint256 public targetAmount;
     uint256 public fundingDeadline;
@@ -33,7 +34,9 @@ contract CrowdFundingWithDeadline {
     ) public {
         name = contractName;
         targetAmount = targetAmountWei; //targetAmountEth * 1 ether;
-        fundingDeadline = currentTime() + durationInMin * 1 minutes;
+        fundingDeadline =
+            currentTime() +
+            Utils.minutuesToSeconds(durationInMin); //durationInMin * 1 minutes;
         beneficiary = address(uint160(beneficiaryAddress));
         state = State.Ongoing;
     }
