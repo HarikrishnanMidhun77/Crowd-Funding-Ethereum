@@ -19,7 +19,7 @@ contract("CrowdFundingDeadline", function (accounts) {
   beforeEach(async function () {
     contract = await CrowdFundingWithDeadline.new(
       "funding",
-      1000,
+      100000,
       10,
       beneficiary,
       {
@@ -84,5 +84,38 @@ contract("CrowdFundingDeadline", function (accounts) {
 
     let state = await contract.state.call();
     expect(state.toNumber()).to.equal(FAILED_STATE);
+  });
+
+  it("collected money payout", async function () {
+    await contract.contribute({ value: ONE_M_WEI, from: contractCreator });
+    await contract.setCurrentTime(601);
+    await contract.finishCrowdFunding();
+    // let totalCollected = await contract.totalCollected.call();
+    // expect(totalCollected.toNumber()).to.equal(ONE_M_WEI);
+
+    let initBalance = await web3.eth.getBalance(beneficiary);
+    await contract.collect();
+    let state = await contract.state.call();
+    expect(state.toNumber()).to.equal(PAYED_OUT_STATE);
+
+    let new_balance = await web3.eth.getBalance(beneficiary);
+    expect(new_balance - initBalance).to.equal(ONE_M_WEI);
+  });
+
+  it("withdraw funds from contact", async function () {
+    await contract.contribute({
+      value: 100,
+      from: contractCreator,
+    });
+    await contract.setCurrentTime(601);
+    await contract.finishCrowdFunding();
+
+    let initBalance = await web3.eth.getBalance(contractCreator);
+    await contract.withdraw({ from: contractCreator });
+    let balance = await contract.amounts.call(contractCreator);
+    expect(balance.toNumber()).to.equal(0);
+
+    // let new_balance = await web3.eth.getBalance(contractCreator);
+    // expect(new_balance - initBalance).to.equal(ONE_M_WEI - 1000);
   });
 });
