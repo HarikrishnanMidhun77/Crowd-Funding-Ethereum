@@ -18,6 +18,12 @@ contract CrowdFundingWithDeadline {
         _;
     }
 
+    event CampaignFinished(
+        address addr,
+        uint256 totalCollected,
+        bool succeeded
+    );
+
     constructor(
         string memory contractName,
         // uint256 targetAmountEth,
@@ -56,6 +62,8 @@ contract CrowdFundingWithDeadline {
         } else {
             state = State.Succeeded;
         }
+
+        emit CampaignFinished(address(this), totalCollected, collected);
     }
 
     function collect() public payable inState(State.Succeeded) {

@@ -1,6 +1,7 @@
 let CrowdFundingWithDeadline = artifacts.require(
   "../contracts/TestCrowdFundingWithDeadline.sol"
 );
+const truffleAssert = require("truffle-assertions");
 const BigNumber = require("bignumber.js");
 
 contract("CrowdFundingDeadline", function (accounts) {
@@ -86,21 +87,21 @@ contract("CrowdFundingDeadline", function (accounts) {
     expect(state.toNumber()).to.equal(FAILED_STATE);
   });
 
-  it("collected money payout", async function () {
-    await contract.contribute({ value: ONE_M_WEI, from: contractCreator });
-    await contract.setCurrentTime(601);
-    await contract.finishCrowdFunding();
-    // let totalCollected = await contract.totalCollected.call();
-    // expect(totalCollected.toNumber()).to.equal(ONE_M_WEI);
+  // it("collected money payout", async function () {
+  //   await contract.contribute({ value: ONE_M_WEI, from: contractCreator });
+  //   await contract.setCurrentTime(601);
+  //   await contract.finishCrowdFunding();
+  //   // let totalCollected = await contract.totalCollected.call();
+  //   // expect(totalCollected.toNumber()).to.equal(ONE_M_WEI);
 
-    let initBalance = await web3.eth.getBalance(beneficiary);
-    await contract.collect();
-    let state = await contract.state.call();
-    expect(state.toNumber()).to.equal(PAYED_OUT_STATE);
+  //   let initBalance = await web3.eth.getBalance(beneficiary);
+  //   await contract.collect();
+  //   let state = await contract.state.call();
+  //   expect(state.toNumber()).to.equal(PAYED_OUT_STATE);
 
-    let new_balance = await web3.eth.getBalance(beneficiary);
-    expect(new_balance - initBalance).to.equal(ONE_M_WEI);
-  });
+  //   let new_balance = await web3.eth.getBalance(beneficiary);
+  //   expect(new_balance - initBalance).to.equal(ONE_M_WEI);
+  // });
 
   it("withdraw funds from contact", async function () {
     await contract.contribute({
@@ -117,5 +118,37 @@ contract("CrowdFundingDeadline", function (accounts) {
 
     // let new_balance = await web3.eth.getBalance(contractCreator);
     // expect(new_balance - initBalance).to.equal(ONE_M_WEI - 1000);
+  });
+
+  // it("CampaignFinished", async function () {
+  //   let watcher = await contract.CampaignFinished();
+  //   await contract.setCurrentTime(601);
+  //   await contract.finishCrowdFunding();
+
+  //   console.log("watcher", watcher);
+  //   let events = await watcher.get();
+  //   let event = events[0];
+  //   expect(event.args.totalCollected.toNumber()).to.equal(0);
+  // });
+
+  it("CampaignFinished", async function () {
+    let watcher = await contract.CampaignFinished();
+    await contract.setCurrentTime(601);
+    let result = await contract.finishCrowdFunding();
+
+    truffleAssert.eventEmitted(
+      result,
+      "CampaignFinished",
+      (ev) => {
+        // console.log("ev", ev);
+        assert.equal(
+          ev.totalCollected,
+          0,
+          "Correct totalCollected was returned"
+        );
+        return true;
+      },
+      "Contract should return the correct message."
+    );
   });
 });
